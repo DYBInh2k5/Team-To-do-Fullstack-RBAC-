@@ -1,0 +1,60 @@
+services:
+  # ── MySQL ────────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: team_todo
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "--password=${MYSQL_ROOT_PASSWORD:-password}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # ── NestJS backend ────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/team_todo
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRES_IN_SECONDS: ${JWT_EXPIRES_IN_SECONDS:-86400}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── React frontend (Nginx) ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Points the browser to the backend. Adjust the host if needed.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
