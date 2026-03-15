@@ -3,10 +3,33 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
+type CorsOriginCallback = (error: Error | null, allow?: boolean) => void;
+
+function getAllowedOrigins(): string[] {
+  const raw = process.env.CORS_ORIGINS;
+  if (!raw) {
+    return ['http://localhost:5173'];
+  }
+
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const allowedOrigins = getAllowedOrigins();
+
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: (origin: string | undefined, callback: CorsOriginCallback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('CORS origin is not allowed.'), false);
+    },
     credentials: true,
   });
 
@@ -29,6 +52,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = Number(process.env.PORT ?? 3000);
+  const host = process.env.HOST ?? '0.0.0.0';
+
+  await app.listen(port, host);
 }
 void bootstrap();
