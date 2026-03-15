@@ -1,5 +1,7 @@
 # Team To-do Fullstack (RBAC)
 
+[![CI](https://github.com/DYBInh2k5/Team-To-do-Fullstack-RBAC-/actions/workflows/ci.yml/badge.svg)](https://github.com/DYBInh2k5/Team-To-do-Fullstack-RBAC-/actions/workflows/ci.yml)
+
 Fullstack project for team task management with role-based access control.
 
 ## Features
